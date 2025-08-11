@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3マッチパズル</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>3マッチパズル</h1>
+    <div id="score-container">
+        <div>Score: <span id="score">0</span></div>
+        <div>Multiplier: <span id="multiplier">1</span>x</div>
+    </div>
+    <div id="game-board"></div>
+
+    <div id="game-over-overlay" class="hidden">
+        <div id="game-over-box">
+            <h2>Game Over</h2>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <button id="play-again-btn">Play Again</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
