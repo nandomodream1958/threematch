@@ -262,6 +262,31 @@ function createRandomSpecialTile() {
     }
 }
 
+function showScorePopup(score, positions) {
+    const popup = document.createElement('div');
+    popup.textContent = `+${score}`;
+    popup.classList.add('score-popup');
+
+    let totalX = 0;
+    let totalY = 0;
+    positions.forEach(pos => {
+        const [row, col] = pos.split('-').map(Number);
+        totalX += col * 52 + 25;
+        totalY += row * 52 + 25;
+    });
+    const centerX = totalX / positions.size;
+    const centerY = totalY / positions.size;
+
+    popup.style.left = `${centerX}px`;
+    popup.style.top = `${centerY}px`;
+
+    gameBoard.appendChild(popup);
+
+    setTimeout(() => {
+        popup.remove();
+    }, 1500);
+}
+
 async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
     let tilesToClear = new Set(initialTilesToClear);
 
@@ -287,6 +312,10 @@ async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
         score += points;
         specialMeter += tilesToClear.size;
         updateSpecialMeter();
+
+        if (points > 0) {
+            showScorePopup(points, tilesToClear);
+        }
 
         if (specialMeter >= specialMeterMax) {
             specialMeter -= specialMeterMax;
@@ -435,11 +464,31 @@ function showComboPopup(multiplier) {
     setTimeout(() => { popup.remove(); }, 1000);
 }
 
+function createParticles(x, y, color) {
+    const particleCount = 10;
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        particle.style.backgroundColor = color;
+        particle.style.left = `${x}px`;
+        particle.style.top = `${y}px`;
+        const angle = Math.random() * 2 * Math.PI;
+        const distance = Math.random() * 40 + 20;
+        particle.style.setProperty('--x', `${x + Math.cos(angle) * distance}px`);
+        particle.style.setProperty('--y', `${y + Math.sin(angle) * distance}px`);
+        gameBoard.appendChild(particle);
+        setTimeout(() => {
+            particle.remove();
+        }, 800);
+    }
+}
+
 function removeMatches(tilesToRemove) {
     tilesToRemove.forEach(pos => {
         const [row, col] = pos.split('-').map(Number);
         const tile = document.querySelector(`.tile[data-row='${row}'][data-col='${col}']`);
         if (tile) {
+            createParticles(col * 52 + 25, row * 52 + 25, tile.style.backgroundColor);
             tile.classList.add('disappearing');
             board[row][col] = null;
         }
