@@ -178,14 +178,15 @@ gameBoard.addEventListener('click', async (e) => {
 });
 
 async function handleMatches(row1, col1, row2, col2) {
-    // レインボーボムのスワップ処理
     const tile1Type = getTileType(row1, col1);
     const tile2Type = getTileType(row2, col2);
-    if (tile1Type === 'rainbow-bomb' || tile2Type === 'rainbow-bomb') {
-        const rainbowBomb = tile1Type === 'rainbow-bomb' ? {r: row1, c: col1} : {r: row2, c: col2};
+
+    // Rainbow Bomb + Regular Tile swap
+    if ((tile1Type === 'rainbow-bomb' && !isSpecial(tile2Type)) || (tile2Type === 'rainbow-bomb' && !isSpecial(tile1Type))) {
+        const rainbowBombPos = tile1Type === 'rainbow-bomb' ? {r: row1, c: col1} : {r: row2, c: col2};
         const otherTileColor = tile1Type === 'rainbow-bomb' ? board[row2][col2].split('-')[0] : board[row1][col1].split('-')[0];
         
-        let tilesToClear = new Set([`${rainbowBomb.r}-${rainbowBomb.c}`]);
+        let tilesToClear = new Set([`${rainbowBombPos.r}-${rainbowBombPos.c}`]);
         for (let r = 0; r < boardSize; r++) {
             for (let c = 0; c < boardSize; c++) {
                 if (board[r][c] && board[r][c].startsWith(otherTileColor)) {
@@ -197,7 +198,7 @@ async function handleMatches(row1, col1, row2, col2) {
         return;
     }
 
-    // 通常のマッチ処理
+    // Original match handling logic
     const matchInfo = checkForMatches();
     let tilesToClear = matchInfo.toRemove;
 
@@ -206,26 +207,7 @@ async function handleMatches(row1, col1, row2, col2) {
         return;
     }
 
-    // 特殊タイル生成の場所を決める
-    const swappedTile1Pos = `${row1}-${col1}`;
-    const swappedTile2Pos = `${row2}-${col2}`;
-    let creationPos = null;
-    if (tilesToClear.has(swappedTile1Pos)) {
-        creationPos = {row: row1, col: col1};
-    } else if (tilesToClear.has(swappedTile2Pos)) {
-        creationPos = {row: row2, col: col2};
-    }
-
-    // もしスワップしたタイルがマッチに含まれない場合（連鎖など）、マッチの中から適当な場所を選ぶ
-    if (!creationPos && matchInfo.toCreate.length > 0) {
-        const firstMatchPos = tilesToClear.values().next().value;
-        const [row, col] = firstMatchPos.split('-').map(Number);
-        creationPos = { row, col };
-    }
-
-    matchInfo.toCreate.forEach(st => st.pos = creationPos);
-
-    await runMatchCycle(tilesToClear, matchInfo.toCreate);
+    await runMatchCycle(tilesToClear);
 }
 
 function createRandomSpecialTile() {
@@ -325,13 +307,7 @@ async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
 
         updateScoreDisplay();
 
-        const creationPositions = new Set();
-        if (specialTilesToCreate.length > 0 && specialTilesToCreate[0].pos) {
-             specialTilesToCreate.forEach(st => creationPositions.add(`${st.pos.row}-${st.pos.col}`));
-        }
-        const finalTilesToRemove = new Set([...tilesToClear].filter(pos => !creationPositions.has(pos)));
-
-        await removeMatches(finalTilesToRemove);
+        await removeMatches(tilesToClear);
         await createSpecialTiles(specialTilesToCreate);
         specialTilesToCreate = [];
 
@@ -398,12 +374,32 @@ async function activateSpecialTiles(tilesToClear) {
             if (isSpecial(tileType)) {
                 let affectedTiles = [];
                 if (tileType.includes('line-bomb-h')) {
+                    const lineEffect = document.createElement('div');
+                    lineEffect.classList.add('line-effect', 'horizontal');
+                    lineEffect.style.left = '0px';
+                    lineEffect.style.top = `${row * 52}px`;
+                    lineEffect.style.width = `${boardSize * 52}px`;
+                    gameBoard.appendChild(lineEffect);
+                    setTimeout(() => lineEffect.remove(), 300);
                     for (let c = 0; c < boardSize; c++) affectedTiles.push(`${row}-${c}`);
                 }
                 if (tileType.includes('line-bomb-v')) {
+                    const lineEffect = document.createElement('div');
+                    lineEffect.classList.add('line-effect', 'vertical');
+                    lineEffect.style.top = '0px';
+                    lineEffect.style.left = `${col * 52}px`;
+                    lineEffect.style.height = `${boardSize * 52}px`;
+                    gameBoard.appendChild(lineEffect);
+                    setTimeout(() => lineEffect.remove(), 300);
                     for (let r = 0; r < boardSize; r++) affectedTiles.push(`${r}-${col}`);
                 }
                 if (tileType.includes('bomb')) {
+                    const bombEffect = document.createElement('div');
+                    bombEffect.classList.add('bomb-effect');
+                    bombEffect.style.left = `${col * 52}px`;
+                    bombEffect.style.top = `${row * 52}px`;
+                    gameBoard.appendChild(bombEffect);
+                    setTimeout(() => bombEffect.remove(), 300);
                     for (let r = Math.max(0, row - 1); r <= Math.min(boardSize - 1, row + 1); r++) {
                         for (let c = Math.max(0, col - 1); c <= Math.min(boardSize - 1, col + 1); c++) {
                             affectedTiles.push(`${r}-${c}`);
@@ -436,14 +432,10 @@ function createSpecialTiles(tilesToCreate) {
             if(tileElement) {
                 tileElement.className = 'tile';
                 tileElement.style.backgroundColor = st.color;
-                if (newType.includes('line-bomb-h')) {
-                    tileElement.classList.add('line-bomb-h');
-                } else if (newType.includes('line-bomb-v')) {
-                    tileElement.classList.add('line-bomb-v');
-                } else if (newType.includes('bomb')) {
-                    tileElement.classList.add('bomb');
-                }
-                if (newType === 'rainbow-bomb') {
+                if(newType.includes('line-bomb-h')) tileElement.classList.add('line-bomb-h');
+                if(newType.includes('line-bomb-v')) tileElement.classList.add('line-bomb-v');
+                if(newType.includes('bomb')) tileElement.classList.add('bomb');
+                if(newType === 'rainbow-bomb') {
                     tileElement.classList.add('rainbow-bomb');
                     tileElement.style.backgroundColor = '';
                 }
@@ -497,7 +489,7 @@ function removeMatches(tilesToRemove) {
     return new Promise(resolve => setTimeout(() => {
         document.querySelectorAll('.disappearing').forEach(tile => tile.remove());
         resolve();
-    }, 300));
+    }, 400));
 }
 
 async function shiftTilesDown() {
@@ -550,86 +542,47 @@ async function fillNewTiles() {
 
 function checkForMatches() {
     const toRemove = new Set();
-    const toCreate = [];
     const colorBoard = board.map(row => row.map(tile => tile ? tile.split('-')[0] : null));
 
-    const horizontalChains = [];
-    const verticalChains = [];
-
-    // Find horizontal chains of 3+
+    // Find horizontal matches
     for (let r = 0; r < boardSize; r++) {
         for (let c = 0; c < boardSize - 2; c++) {
             if (!colorBoard[r][c]) continue;
-            let chain = [{r,c}];
+            const match = [{r, c}];
             for (let k = c + 1; k < boardSize; k++) {
-                if (colorBoard[r][k] === colorBoard[r][c]) chain.push({r,c:k});
-                else break;
+                if (colorBoard[r][k] === colorBoard[r][c]) {
+                    match.push({r, c: k});
+                } else {
+                    break;
+                }
             }
-            if (chain.length >= 3) {
-                horizontalChains.push(chain);
-                c += chain.length - 1;
+            if (match.length >= 3) {
+                match.forEach(p => toRemove.add(`${p.r}-${p.c}`));
+                c += match.length - 1;
             }
         }
     }
 
-    // Find vertical chains of 3+
+    // Find vertical matches
     for (let c = 0; c < boardSize; c++) {
         for (let r = 0; r < boardSize - 2; r++) {
             if (!colorBoard[r][c]) continue;
-            let chain = [{r,c}];
+            const match = [{r, c}];
             for (let k = r + 1; k < boardSize; k++) {
-                if (colorBoard[k][c] === colorBoard[r][c]) chain.push({r:k,c});
-                else break;
+                if (colorBoard[k][c] === colorBoard[r][c]) {
+                    match.push({r: k, c});
+                } else {
+                    break;
+                }
             }
-            if (chain.length >= 3) {
-                verticalChains.push(chain);
-                r += chain.length - 1;
-            }
-        }
-    }
-
-    const allChains = [...horizontalChains, ...verticalChains];
-    const processedChains = new Set();
-
-    // Process L/T shapes
-    for (const hChain of horizontalChains) {
-        for (const vChain of verticalChains) {
-            const hSet = new Set(hChain.map(p => `${p.r}-${p.c}`));
-            const vSet = new Set(vChain.map(p => `${p.r}-${p.c}`));
-            const intersection = new Set([...hSet].filter(x => vSet.has(x)));
-            if (intersection.size > 0) {
-                const color = colorBoard[hChain[0].r][hChain[0].c];
-                toCreate.push({type: 'bomb', color: color});
-                const hChainStr = hChain.map(p => `${p.r}-${p.c}`).join(',');
-                const vChainStr = vChain.map(p => `${p.r}-${p.c}`).join(',');
-                processedChains.add(hChainStr);
-                processedChains.add(vChainStr);
+            if (match.length >= 3) {
+                match.forEach(p => toRemove.add(`${p.r}-${p.c}`));
+                r += match.length - 1;
             }
         }
     }
 
-    // Process straight line matches
-    for (const chain of allChains) {
-        const chainString = chain.map(p => `${p.r}-${p.c}`).join(',');
-        if (processedChains.has(chainString)) continue;
-
-        const color = colorBoard[chain[0].r][chain[0].c];
-        if (chain.length === 4) {
-            const type = horizontalChains.some(c => c.map(p => `${p.r}-${p.c}`).join(',') === chainString) ? 'line-bomb-h' : 'line-bomb-v';
-            toCreate.push({type, color});
-        } else if (chain.length >= 5) {
-            toCreate.push({type: 'rainbow-bomb', color: 'rainbow'});
-        }
-    }
-    
-    // Get tiles to remove
-    allChains.forEach(chain => {
-        chain.forEach(p => {
-            toRemove.add(`${p.r}-${p.c}`);
-        });
-    });
-
-    return { toRemove, toCreate };
+    return { toRemove, toCreate: [] };
 }
 
 function getTileType(row, col) {
@@ -637,7 +590,7 @@ function getTileType(row, col) {
 }
 
 function isSpecial(tileType) {
-    return tileType && tileType.includes('-');
+    return tileType && (tileType.includes('-') || tileType === 'rainbow-bomb');
 }
 
 function isAdjacent(row1, col1, row2, col2) {
