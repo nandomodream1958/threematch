@@ -4,6 +4,7 @@ const multiplierElement = document.getElementById('multiplier');
 const gameOverOverlay = document.getElementById('game-over-overlay');
 const finalScoreElement = document.getElementById('final-score');
 const playAgainBtn = document.getElementById('play-again-btn');
+const specialMeterBar = document.getElementById('special-meter-bar');
 
 const boardSize = 8;
 const tileTypes = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
@@ -11,6 +12,13 @@ let board = [];
 let score = 0;
 let multiplier = 1;
 let selectedTile = null;
+let specialMeter = 0;
+const specialMeterMax = 100;
+
+function updateSpecialMeter() {
+    const percentage = Math.min(100, (specialMeter / specialMeterMax) * 100);
+    specialMeterBar.style.width = `${percentage}%`;
+}
 
 function updateScoreDisplay() {
     scoreElement.textContent = score;
@@ -220,6 +228,40 @@ async function handleMatches(row1, col1, row2, col2) {
     await runMatchCycle(tilesToClear, matchInfo.toCreate);
 }
 
+function createRandomSpecialTile() {
+    const specialTileTypes = ['line-bomb-h', 'line-bomb-v', 'bomb', 'rainbow-bomb'];
+    const randomType = specialTileTypes[Math.floor(Math.random() * specialTileTypes.length)];
+
+    const availableTiles = [];
+    for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+            if (board[r][c] && !isSpecial(board[r][c])) {
+                availableTiles.push({r, c});
+            }
+        }
+    }
+
+    if (availableTiles.length > 0) {
+        const randomPos = availableTiles[Math.floor(Math.random() * availableTiles.length)];
+        const color = board[randomPos.r][randomPos.c].split('-')[0];
+        const newType = randomType === 'rainbow-bomb' ? 'rainbow-bomb' : `${color}-${randomType}`;
+        board[randomPos.r][randomPos.c] = newType;
+
+        const tileElement = document.querySelector(`.tile[data-row='${randomPos.r}'][data-col='${randomPos.c}']`);
+        if (tileElement) {
+            tileElement.className = 'tile';
+            tileElement.style.backgroundColor = color;
+            if (newType.includes('line-bomb-h')) tileElement.classList.add('line-bomb-h');
+            if (newType.includes('line-bomb-v')) tileElement.classList.add('line-bomb-v');
+            if (newType.includes('bomb')) tileElement.classList.add('bomb');
+            if (newType === 'rainbow-bomb') {
+                tileElement.classList.add('rainbow-bomb');
+                tileElement.style.backgroundColor = '';
+            }
+        }
+    }
+}
+
 async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
     let tilesToClear = new Set(initialTilesToClear);
 
@@ -243,6 +285,15 @@ async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
 
         const points = tilesToClear.size * 10 * multiplier;
         score += points;
+        specialMeter += tilesToClear.size;
+        updateSpecialMeter();
+
+        if (specialMeter >= specialMeterMax) {
+            specialMeter -= specialMeterMax;
+            createRandomSpecialTile();
+            updateSpecialMeter();
+        }
+
         updateScoreDisplay();
 
         const creationPositions = new Set();
@@ -323,6 +374,13 @@ async function activateSpecialTiles(tilesToClear) {
                 if (tileType.includes('line-bomb-v')) {
                     for (let r = 0; r < boardSize; r++) affectedTiles.push(`${r}-${col}`);
                 }
+                if (tileType.includes('bomb')) {
+                    for (let r = Math.max(0, row - 1); r <= Math.min(boardSize - 1, row + 1); r++) {
+                        for (let c = Math.max(0, col - 1); c <= Math.min(boardSize - 1, col + 1); c++) {
+                            affectedTiles.push(`${r}-${c}`);
+                        }
+                    }
+                }
 
                 for (const affected of affectedTiles) {
                     if (!tilesToClear.has(affected)) {
@@ -349,9 +407,14 @@ function createSpecialTiles(tilesToCreate) {
             if(tileElement) {
                 tileElement.className = 'tile';
                 tileElement.style.backgroundColor = st.color;
-                if(newType.includes('line-bomb-h')) tileElement.classList.add('line-bomb-h');
-                if(newType.includes('line-bomb-v')) tileElement.classList.add('line-bomb-v');
-                if(newType === 'rainbow-bomb') {
+                if (newType.includes('line-bomb-h')) {
+                    tileElement.classList.add('line-bomb-h');
+                } else if (newType.includes('line-bomb-v')) {
+                    tileElement.classList.add('line-bomb-v');
+                } else if (newType.includes('bomb')) {
+                    tileElement.classList.add('bomb');
+                }
+                if (newType === 'rainbow-bomb') {
                     tileElement.classList.add('rainbow-bomb');
                     tileElement.style.backgroundColor = '';
                 }
@@ -444,6 +507,7 @@ function checkForMatches() {
     const horizontalChains = [];
     const verticalChains = [];
 
+    // Find horizontal chains of 3+
     for (let r = 0; r < boardSize; r++) {
         for (let c = 0; c < boardSize - 2; c++) {
             if (!colorBoard[r][c]) continue;
@@ -459,6 +523,7 @@ function checkForMatches() {
         }
     }
 
+    // Find vertical chains of 3+
     for (let c = 0; c < boardSize; c++) {
         for (let r = 0; r < boardSize - 2; r++) {
             if (!colorBoard[r][c]) continue;
@@ -477,6 +542,7 @@ function checkForMatches() {
     const allChains = [...horizontalChains, ...verticalChains];
     const processedChains = new Set();
 
+    // Process L/T shapes
     for (const hChain of horizontalChains) {
         for (const vChain of verticalChains) {
             const hSet = new Set(hChain.map(p => `${p.r}-${p.c}`));
@@ -484,26 +550,35 @@ function checkForMatches() {
             const intersection = new Set([...hSet].filter(x => vSet.has(x)));
             if (intersection.size > 0) {
                 const color = colorBoard[hChain[0].r][hChain[0].c];
-                toCreate.push({type: 'line-bomb-v', color: color});
-                hChain.forEach(p => toRemove.add(`${p.r}-${p.c}`));
-                vChain.forEach(p => toRemove.add(`${p.r}-${p.c}`));
-                processedChains.add(hChain).add(vChain);
+                toCreate.push({type: 'bomb', color: color});
+                const hChainStr = hChain.map(p => `${p.r}-${p.c}`).join(',');
+                const vChainStr = vChain.map(p => `${p.r}-${p.c}`).join(',');
+                processedChains.add(hChainStr);
+                processedChains.add(vChainStr);
             }
         }
     }
 
+    // Process straight line matches
     for (const chain of allChains) {
-        if (processedChains.has(chain)) continue;
+        const chainString = chain.map(p => `${p.r}-${p.c}`).join(',');
+        if (processedChains.has(chainString)) continue;
+
         const color = colorBoard[chain[0].r][chain[0].c];
-        chain.forEach(p => toRemove.add(`${p.r}-${p.c}`));
         if (chain.length === 4) {
-            const type = horizontalChains.includes(chain) ? 'line-bomb-h' : 'line-bomb-v';
+            const type = horizontalChains.some(c => c.map(p => `${p.r}-${p.c}`).join(',') === chainString) ? 'line-bomb-h' : 'line-bomb-v';
             toCreate.push({type, color});
-        }
-        if (chain.length >= 5) {
+        } else if (chain.length >= 5) {
             toCreate.push({type: 'rainbow-bomb', color: 'rainbow'});
         }
     }
+    
+    // Get tiles to remove
+    allChains.forEach(chain => {
+        chain.forEach(p => {
+            toRemove.add(`${p.r}-${p.c}`);
+        });
+    });
 
     return { toRemove, toCreate };
 }
