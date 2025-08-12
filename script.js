@@ -6,6 +6,15 @@ const finalScoreElement = document.getElementById('final-score');
 const playAgainBtn = document.getElementById('play-again-btn');
 const specialMeterBar = document.getElementById('special-meter-bar');
 
+// Audio elements
+const soundBackground = document.getElementById('sound-background');
+soundBackground.volume = 0.5;
+const soundSwap = document.getElementById('sound-swap');
+const soundMatch = document.getElementById('sound-match');
+const soundBomb = document.getElementById('sound-bomb');
+const soundLineBomb = document.getElementById('sound-line-bomb');
+const soundRainbowBomb = document.getElementById('sound-rainbow-bomb');
+
 const boardSize = 8;
 const tileTypes = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
 let board = [];
@@ -14,6 +23,12 @@ let multiplier = 1;
 let selectedTile = null;
 let specialMeter = 0;
 const specialMeterMax = 100;
+let isMusicPlaying = false;
+
+function playSound(sound) {
+    sound.currentTime = 0;
+    sound.play();
+}
 
 function updateSpecialMeter() {
     const percentage = Math.min(100, (specialMeter / specialMeterMax) * 100);
@@ -153,6 +168,11 @@ shuffleBoard();
 updateScoreDisplay();
 
 gameBoard.addEventListener('click', async (e) => {
+    if (!isMusicPlaying) {
+        soundBackground.play();
+        isMusicPlaying = true;
+    }
+
     const clickedTileElement = e.target;
     if (!clickedTileElement.classList.contains('tile')) return;
 
@@ -182,6 +202,7 @@ async function handleMatches(row1, col1, row2, col2) {
     const tile2Type = getTileType(row2, col2);
 
     if (tile1Type === 'rainbow-bomb' || tile2Type === 'rainbow-bomb') {
+        playSound(soundRainbowBomb);
         const rainbowBomb = tile1Type === 'rainbow-bomb' ? {r: row1, c: col1} : {r: row2, c: col2};
         const otherTileColor = tile1Type === 'rainbow-bomb' ? board[row2][col2].split('-')[0] : board[row1][col1].split('-')[0];
         
@@ -247,11 +268,13 @@ function handleSpecialTileCombination(tile1Type, tile2Type, row1, col1, row2, co
 
     // Combination 1: ラインクリア＋ラインクリア（同方向）
     if (tile1Type.includes('line-bomb-h') && tile2Type.includes('line-bomb-h')) {
+        playSound(soundLineBomb);
         for (let c = 0; c < boardSize; c++) {
             tilesToClear.add(`${row1}-${c}`);
             tilesToClear.add(`${row2}-${c}`);
         }
     } else if (tile1Type.includes('line-bomb-v') && tile2Type.includes('line-bomb-v')) {
+        playSound(soundLineBomb);
         for (let r = 0; r < boardSize; r++) {
             tilesToClear.add(`${r}-${col1}`);
             tilesToClear.add(`${r}-${col2}`);
@@ -260,6 +283,7 @@ function handleSpecialTileCombination(tile1Type, tile2Type, row1, col1, row2, co
     // Combination 2: ラインクリア＋ラインクリア（異方向）
     else if ((tile1Type.includes('line-bomb-h') && tile2Type.includes('line-bomb-v')) ||
                (tile1Type.includes('line-bomb-v') && tile2Type.includes('line-bomb-h'))) {
+        playSound(soundLineBomb);
         const hBombRow = tile1Type.includes('line-bomb-h') ? row1 : row2;
         const vBombCol = tile1Type.includes('line-bomb-v') ? col1 : col2;
         for (let c = 0; c < boardSize; c++) tilesToClear.add(`${hBombRow}-${c}`);
@@ -267,6 +291,7 @@ function handleSpecialTileCombination(tile1Type, tile2Type, row1, col1, row2, co
     }
     // Combination 3: ラインクリア＋爆弾
     else if ((tile1Type.includes('line-bomb-h') || tile1Type.includes('line-bomb-v')) && tile2Type.includes('bomb')) {
+        playSound(soundBomb);
         const lineBombRow = tile1Type.includes('line-bomb-h') ? row1 : row2;
         const lineBombCol = tile1Type.includes('line-bomb-v') ? col1 : col2;
         const bombRow = tile2Type.includes('bomb') ? row2 : row1;
@@ -292,6 +317,7 @@ function handleSpecialTileCombination(tile1Type, tile2Type, row1, col1, row2, co
         tempTilesToBomb.forEach(pos => tilesToClear.add(pos));
 
     } else if ((tile2Type.includes('line-bomb-h') || tile2Type.includes('line-bomb-v')) && tile1Type.includes('bomb')) {
+        playSound(soundBomb);
         const lineBombRow = tile2Type.includes('line-bomb-h') ? row2 : row1;
         const lineBombCol = tile2Type.includes('line-bomb-v') ? col2 : col1;
         const bombRow = tile1Type.includes('bomb') ? row1 : row2;
@@ -318,6 +344,7 @@ function handleSpecialTileCombination(tile1Type, tile2Type, row1, col1, row2, co
     }
     // Combination 4: 爆弾＋爆弾
     else if (tile1Type.includes('bomb') && tile2Type.includes('bomb')) {
+        playSound(soundBomb);
         const centerRow = Math.floor((row1 + row2) / 2);
         const centerCol = Math.floor((col1 + col2) / 2);
         const radius = 2; // For a 5x5 area (center + 2 in each direction)
@@ -443,6 +470,7 @@ async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
         updateSpecialMeter();
 
         if (points > 0) {
+            playSound(soundMatch);
             showScorePopup(points, tilesToClear);
         }
 
@@ -524,12 +552,15 @@ async function activateSpecialTiles(tilesToClear) {
             if (isSpecial(tileType)) {
                 let affectedTiles = [];
                 if (tileType.includes('line-bomb-h')) {
+                    playSound(soundLineBomb);
                     for (let c = 0; c < boardSize; c++) affectedTiles.push(`${row}-${c}`);
                 }
                 if (tileType.includes('line-bomb-v')) {
+                    playSound(soundLineBomb);
                     for (let r = 0; r < boardSize; r++) affectedTiles.push(`${r}-${col}`);
                 }
                 if (tileType.includes('bomb')) {
+                    playSound(soundBomb);
                     for (let r = Math.max(0, row - 1); r <= Math.min(boardSize - 1, row + 1); r++) {
                         for (let c = Math.max(0, col - 1); c <= Math.min(boardSize - 1, c + 1); c++) {
                             affectedTiles.push(`${r}-${c}`);
@@ -776,6 +807,7 @@ function isAdjacent(row1, col1, row2, col2) {
 }
 
 async function swapTiles(row1, col1, row2, col2) {
+    playSound(soundSwap);
     const tile1 = document.querySelector(`.tile[data-row='${row1}'][data-col='${col1}']`);
     const tile2 = document.querySelector(`.tile[data-row='${row2}'][data-col='${col2}']`);
 

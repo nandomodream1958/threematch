@@ -7,10 +7,9 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>3マッチパズル</h1>
     <div id="score-container">
         <div>Score: <span id="score">0</span></div>
-        <div>Multiplier: <span id="multiplier">1</span>x</div>
+        <div>Multiplier: <span id="multiplier">1x</span></div>
     </div>
     <div id="special-meter-container">
         <div id="special-meter-bar"></div>
@@ -24,6 +23,13 @@
             <button id="play-again-btn">Play Again</button>
         </div>
     </div>
+
+    <audio id="sound-background" src="sounds/background.mp3" loop></audio>
+    <audio id="sound-swap" src="sounds/swap.mp3"></audio>
+    <audio id="sound-match" src="sounds/match.mp3"></audio>
+    <audio id="sound-bomb" src="sounds/bomb.mp3"></audio>
+    <audio id="sound-line-bomb" src="sounds/line_bomb.mp3"></audio>
+    <audio id="sound-rainbow-bomb" src="sounds/rainbow_bomb.mp3"></audio>
 
     <script src="script.js"></script>
 </body>
