@@ -58,7 +58,7 @@ function checkForPossibleMoves() {
         // Vertical
         for (let c = 0; c < boardSize; c++) {
             for (let r = 0; r < boardSize - 2; r++) {
-                if (tempB[r][c] && tempB[r][c] === tempB[r + 1][c] && tempB[r][c] === tempB[r + 2][c]) {
+                if (tempB[r][c] && tempB[r + 1][c] && tempB[r][c] === tempB[r + 1][c] && tempB[r][c] === tempB[r + 2][c]) {
                     return true;
                 }
             }
@@ -178,9 +178,9 @@ gameBoard.addEventListener('click', async (e) => {
 });
 
 async function handleMatches(row1, col1, row2, col2) {
-    // レインボーボムのスワップ処理
     const tile1Type = getTileType(row1, col1);
     const tile2Type = getTileType(row2, col2);
+
     if (tile1Type === 'rainbow-bomb' || tile2Type === 'rainbow-bomb') {
         const rainbowBomb = tile1Type === 'rainbow-bomb' ? {r: row1, c: col1} : {r: row2, c: col2};
         const otherTileColor = tile1Type === 'rainbow-bomb' ? board[row2][col2].split('-')[0] : board[row1][col1].split('-')[0];
@@ -195,6 +195,18 @@ async function handleMatches(row1, col1, row2, col2) {
         }
         await runMatchCycle(tilesToClear);
         return;
+    }
+
+    // 特殊タイルのかけ合わせ処理
+    if (isSpecial(tile1Type) && isSpecial(tile2Type)) {
+        const combinedTilesToClear = handleSpecialTileCombination(tile1Type, tile2Type, row1, col1, row2, col2);
+        if (combinedTilesToClear.size > 0) {
+            // Remove the two special tiles themselves from the board
+            board[row1][col1] = null;
+            board[row2][col2] = null;
+            await runMatchCycle(combinedTilesToClear);
+            return;
+        }
     }
 
     // 通常のマッチ処理
@@ -226,6 +238,98 @@ async function handleMatches(row1, col1, row2, col2) {
     matchInfo.toCreate.forEach(st => st.pos = creationPos);
 
     await runMatchCycle(tilesToClear, matchInfo.toCreate);
+}
+
+function handleSpecialTileCombination(tile1Type, tile2Type, row1, col1, row2, col2) {
+    let tilesToClear = new Set();
+    const color1 = tile1Type.split('-')[0];
+    const color2 = tile2Type.split('-')[0];
+
+    // Combination 1: ラインクリア＋ラインクリア（同方向）
+    if (tile1Type.includes('line-bomb-h') && tile2Type.includes('line-bomb-h')) {
+        for (let c = 0; c < boardSize; c++) {
+            tilesToClear.add(`${row1}-${c}`);
+            tilesToClear.add(`${row2}-${c}`);
+        }
+    } else if (tile1Type.includes('line-bomb-v') && tile2Type.includes('line-bomb-v')) {
+        for (let r = 0; r < boardSize; r++) {
+            tilesToClear.add(`${r}-${col1}`);
+            tilesToClear.add(`${r}-${col2}`);
+        }
+    }
+    // Combination 2: ラインクリア＋ラインクリア（異方向）
+    else if ((tile1Type.includes('line-bomb-h') && tile2Type.includes('line-bomb-v')) ||
+               (tile1Type.includes('line-bomb-v') && tile2Type.includes('line-bomb-h'))) {
+        const hBombRow = tile1Type.includes('line-bomb-h') ? row1 : row2;
+        const vBombCol = tile1Type.includes('line-bomb-v') ? col1 : col2;
+        for (let c = 0; c < boardSize; c++) tilesToClear.add(`${hBombRow}-${c}`);
+        for (let r = 0; r < boardSize; r++) tilesToClear.add(`${r}-${vBombCol}`);
+    }
+    // Combination 3: ラインクリア＋爆弾
+    else if ((tile1Type.includes('line-bomb-h') || tile1Type.includes('line-bomb-v')) && tile2Type.includes('bomb')) {
+        const lineBombRow = tile1Type.includes('line-bomb-h') ? row1 : row2;
+        const lineBombCol = tile1Type.includes('line-bomb-v') ? col1 : col2;
+        const bombRow = tile2Type.includes('bomb') ? row2 : row1;
+        const bombCol = tile2Type.includes('bomb') ? col2 : col1;
+
+        // Clear the line
+        if (tile1Type.includes('line-bomb-h')) {
+            for (let c = 0; c < boardSize; c++) tilesToClear.add(`${lineBombRow}-${c}`);
+        } else { // line-bomb-v
+            for (let r = 0; r < boardSize; r++) tilesToClear.add(`${r}-${lineBombCol}`);
+        }
+
+        // Treat cleared line tiles as bombs
+        const tempTilesToBomb = new Set();
+        tilesToClear.forEach(pos => {
+            const [r, c] = pos.split('-').map(Number);
+            for (let br = Math.max(0, r - 1); br <= Math.min(boardSize - 1, r + 1); br++) {
+                for (let bc = Math.max(0, c - 1); bc <= Math.min(boardSize - 1, c + 1); bc++) {
+                    tempTilesToBomb.add(`${br}-${bc}`);
+                }
+            }
+        });
+        tempTilesToBomb.forEach(pos => tilesToClear.add(pos));
+
+    } else if ((tile2Type.includes('line-bomb-h') || tile2Type.includes('line-bomb-v')) && tile1Type.includes('bomb')) {
+        const lineBombRow = tile2Type.includes('line-bomb-h') ? row2 : row1;
+        const lineBombCol = tile2Type.includes('line-bomb-v') ? col2 : col1;
+        const bombRow = tile1Type.includes('bomb') ? row1 : row2;
+        const bombCol = tile1Type.includes('bomb') ? col1 : col2;
+
+        // Clear the line
+        if (tile2Type.includes('line-bomb-h')) {
+            for (let c = 0; c < boardSize; c++) tilesToClear.add(`${lineBombRow}-${c}`);
+        } else { // line-bomb-v
+            for (let r = 0; r < boardSize; r++) tilesToClear.add(`${r}-${lineBombCol}`);
+        }
+
+        // Treat cleared line tiles as bombs
+        const tempTilesToBomb = new Set();
+        tilesToClear.forEach(pos => {
+            const [r, c] = pos.split('-').map(Number);
+            for (let br = Math.max(0, r - 1); br <= Math.min(boardSize - 1, r + 1); br++) {
+                for (let bc = Math.max(0, c - 1); bc <= Math.min(boardSize - 1, c + 1); bc++) {
+                    tempTilesToBomb.add(`${br}-${bc}`);
+                }
+            }
+        });
+        tempTilesToBomb.forEach(pos => tilesToClear.add(pos));
+    }
+    // Combination 4: 爆弾＋爆弾
+    else if (tile1Type.includes('bomb') && tile2Type.includes('bomb')) {
+        const centerRow = Math.floor((row1 + row2) / 2);
+        const centerCol = Math.floor((col1 + col2) / 2);
+        const radius = 2; // For a 5x5 area (center + 2 in each direction)
+
+        for (let r = Math.max(0, centerRow - radius); r <= Math.min(boardSize - 1, centerRow + radius); r++) {
+            for (let c = Math.max(0, centerCol - radius); c <= Math.min(boardSize - 1, c + 1); c++) {
+                tilesToClear.add(`${r}-${c}`);
+            }
+        }
+    }
+
+    return tilesToClear;
 }
 
 function createRandomSpecialTile() {
@@ -287,6 +391,29 @@ function showScorePopup(score, positions) {
     }, 1500);
 }
 
+function animateScoreUpdate(startScore, endScore) {
+    const duration = 500; // ms
+    const frameDuration = 1000 / 60; // 60fps
+    const totalFrames = Math.round(duration / frameDuration);
+    const scoreIncrement = (endScore - startScore) / totalFrames;
+    let currentFrame = 0;
+    let currentScore = startScore;
+
+    function update() {
+        currentFrame++;
+        currentScore += scoreIncrement;
+        scoreElement.textContent = Math.round(currentScore);
+
+        if (currentFrame < totalFrames) {
+            requestAnimationFrame(update);
+        } else {
+            scoreElement.textContent = endScore;
+        }
+    }
+
+    requestAnimationFrame(update);
+}
+
 async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
     let tilesToClear = new Set(initialTilesToClear);
 
@@ -309,7 +436,9 @@ async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
         tilesToClear = activatedTiles;
 
         const points = tilesToClear.size * 10 * multiplier;
+        const startScore = score;
         score += points;
+        animateScoreUpdate(startScore, score);
         specialMeter += tilesToClear.size;
         updateSpecialMeter();
 
@@ -366,10 +495,7 @@ async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
     multiplier = 1;
 
     if (!checkForPossibleMoves()) {
-        shuffleBoard();
-        if (!checkForPossibleMoves()) {
-            handleGameOver();
-        }
+        handleGameOver();
     }
 }
 
@@ -405,7 +531,7 @@ async function activateSpecialTiles(tilesToClear) {
                 }
                 if (tileType.includes('bomb')) {
                     for (let r = Math.max(0, row - 1); r <= Math.min(boardSize - 1, row + 1); r++) {
-                        for (let c = Math.max(0, col - 1); c <= Math.min(boardSize - 1, col + 1); c++) {
+                        for (let c = Math.max(0, col - 1); c <= Math.min(boardSize - 1, c + 1); c++) {
                             affectedTiles.push(`${r}-${c}`);
                         }
                     }
@@ -465,11 +591,14 @@ function showComboPopup(multiplier) {
 }
 
 function createParticles(x, y, color) {
-    const particleCount = 10;
+    const particleCount = 20;
     for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
         particle.classList.add('particle');
         particle.style.backgroundColor = color;
+        const size = Math.random() * 10 + 5;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
         particle.style.left = `${x}px`;
         particle.style.top = `${y}px`;
         const angle = Math.random() * 2 * Math.PI;

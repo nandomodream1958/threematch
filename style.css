@@ -1,11 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700&display=swap');
+
 body {
-    font-family: sans-serif;
+    font-family: 'Nunito', sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
     margin: 0;
-    background-color: #f0f0f0;
+    background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
     flex-direction: column; /* 縦に並べる */
 }
 
@@ -235,7 +237,7 @@ body {
         opacity: 1;
     }
     to {
-        transform: scale(0);
+        transform: scale(0) translateY(50px);
         opacity: 0;
         top: var(--y);
         left: var(--x);
