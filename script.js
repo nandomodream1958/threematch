@@ -1,6 +1,8 @@
 const gameBoard = document.getElementById('game-board');
 const scoreElement = document.getElementById('score');
-const multiplierElement = document.getElementById('multiplier');
+const levelElement = document.getElementById('level');
+const highScoreElement = document.getElementById('high-score');
+const targetScoreElement = document.getElementById('target-score');
 const gameOverOverlay = document.getElementById('game-over-overlay');
 const finalScoreElement = document.getElementById('final-score');
 const playAgainBtn = document.getElementById('play-again-btn');
@@ -14,12 +16,16 @@ const soundMatch = document.getElementById('sound-match');
 const soundBomb = document.getElementById('sound-bomb');
 const soundLineBomb = document.getElementById('sound-line-bomb');
 const soundRainbowBomb = document.getElementById('sound-rainbow-bomb');
+const soundLevelUp = document.getElementById('sound-level-up');
 
 const boardSize = 8;
 const tileTypes = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
 let board = [];
 let score = 0;
 let multiplier = 1;
+let level = 1;
+let scoreToNextLevel = 1000;
+let highScore = 0;
 let selectedTile = null;
 let specialMeter = 0;
 const specialMeterMax = 100;
@@ -37,7 +43,22 @@ function updateSpecialMeter() {
 
 function updateScoreDisplay() {
     scoreElement.textContent = score;
-    multiplierElement.textContent = multiplier;
+    levelElement.textContent = level;
+    highScoreElement.textContent = highScore;
+    targetScoreElement.textContent = scoreToNextLevel;
+}
+
+function showLevelUpPopup() {
+    playSound(soundLevelUp);
+    gameBoard.classList.add('screen-flash');
+    setTimeout(() => gameBoard.classList.remove('screen-flash'), 500);
+
+    const popup = document.createElement('div');
+    popup.textContent = 'Level Up!';
+    popup.classList.add('level-up-popup');
+    gameBoard.appendChild(popup);
+
+    setTimeout(() => { popup.remove(); }, 1500);
 }
 
 function showComboPopup(multiplier) {
@@ -53,6 +74,10 @@ function showComboPopup(multiplier) {
 }
 
 function handleGameOver() {
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('highScore', highScore);
+    }
     finalScoreElement.textContent = score;
     gameOverOverlay.classList.remove('hidden');
     gameBoard.style.pointerEvents = 'none'; // Disable game board interaction
@@ -130,6 +155,7 @@ function shuffleBoard() {
 
 // ゲームボードの初期化
 function initializeBoard() {
+    highScore = localStorage.getItem('highScore') || 0;
     board = []; // Clear the board data
     for (let row = 0; row < boardSize; row++) {
         board[row] = []; // Create a new row
@@ -164,6 +190,7 @@ function renderBoard() {
     }
 }
 
+initializeBoard();
 shuffleBoard();
 updateScoreDisplay();
 
@@ -203,6 +230,7 @@ async function handleMatches(row1, col1, row2, col2) {
 
     if (tile1Type === 'rainbow-bomb' || tile2Type === 'rainbow-bomb') {
         playSound(soundRainbowBomb);
+        createSpecialCombinationParticles(col1 * 52 + 25, row1 * 52 + 25);
         const rainbowBomb = tile1Type === 'rainbow-bomb' ? {r: row1, c: col1} : {r: row2, c: col2};
         const otherTileColor = tile1Type === 'rainbow-bomb' ? board[row2][col2].split('-')[0] : board[row1][col1].split('-')[0];
         
@@ -262,6 +290,7 @@ async function handleMatches(row1, col1, row2, col2) {
 }
 
 function handleSpecialTileCombination(tile1Type, tile2Type, row1, col1, row2, col2) {
+    createSpecialCombinationParticles(col1 * 52 + 25, row1 * 52 + 25);
     let tilesToClear = new Set();
     const color1 = tile1Type.split('-')[0];
     const color2 = tile2Type.split('-')[0];
@@ -352,6 +381,68 @@ function handleSpecialTileCombination(tile1Type, tile2Type, row1, col1, row2, co
         for (let r = Math.max(0, centerRow - radius); r <= Math.min(boardSize - 1, centerRow + radius); r++) {
             for (let c = Math.max(0, centerCol - radius); c <= Math.min(boardSize - 1, c + 1); c++) {
                 tilesToClear.add(`${r}-${c}`);
+            }
+        }
+    }
+    // Combination 5: カラー爆弾＋爆弾
+    else if (tile1Type.includes('rainbow-bomb') && tile2Type.includes('bomb')) {
+        playSound(soundBomb);
+        const bombColor = tile2Type.split('-')[0];
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                if (board[r][c] && board[r][c].startsWith(bombColor)) {
+                    for (let br = Math.max(0, r - 1); br <= Math.min(boardSize - 1, r + 1); br++) {
+                        for (let bc = Math.max(0, c - 1); bc <= Math.min(boardSize - 1, c + 1); bc++) {
+                            tilesToClear.add(`${br}-${bc}`);
+                        }
+                    }
+                }
+            }
+        }
+    } else if (tile2Type.includes('rainbow-bomb') && tile1Type.includes('bomb')) {
+        playSound(soundBomb);
+        const bombColor = tile1Type.split('-')[0];
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                if (board[r][c] && board[r][c].startsWith(bombColor)) {
+                    for (let br = Math.max(0, r - 1); br <= Math.min(boardSize - 1, r + 1); br++) {
+                        for (let bc = Math.max(0, c - 1); bc <= Math.min(boardSize - 1, c + 1); bc++) {
+                            tilesToClear.add(`${br}-${bc}`);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // Combination 6: カラー爆弾＋ラインクリア
+    else if (tile1Type.includes('rainbow-bomb') && (tile2Type.includes('line-bomb-h') || tile2Type.includes('line-bomb-v'))) {
+        playSound(soundLineBomb);
+        const lineBombColor = tile2Type.split('-')[0];
+        const isHorizontal = tile2Type.includes('line-bomb-h');
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                if (board[r][c] && board[r][c].startsWith(lineBombColor)) {
+                    if (isHorizontal) {
+                        for (let i = 0; i < boardSize; i++) tilesToClear.add(`${r}-${i}`);
+                    } else {
+                        for (let i = 0; i < boardSize; i++) tilesToClear.add(`${i}-${c}`);
+                    }
+                }
+            }
+        }
+    } else if (tile2Type.includes('rainbow-bomb') && (tile1Type.includes('line-bomb-h') || tile1Type.includes('line-bomb-v'))) {
+        playSound(soundLineBomb);
+        const lineBombColor = tile1Type.split('-')[0];
+        const isHorizontal = tile1Type.includes('line-bomb-h');
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                if (board[r][c] && board[r][c].startsWith(lineBombColor)) {
+                    if (isHorizontal) {
+                        for (let i = 0; i < boardSize; i++) tilesToClear.add(`${r}-${i}`);
+                    } else {
+                        for (let i = 0; i < boardSize; i++) tilesToClear.add(`${i}-${c}`);
+                    }
+                }
             }
         }
     }
@@ -452,10 +543,8 @@ async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
         if (multiplier > 1) {
             showComboPopup(multiplier);
             gameBoard.classList.add('board-shaking');
-            multiplierElement.classList.add('scaling');
             setTimeout(() => {
                 gameBoard.classList.remove('board-shaking');
-                multiplierElement.classList.remove('scaling');
             }, 300);
         }
 
@@ -472,6 +561,15 @@ async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
         if (points > 0) {
             playSound(soundMatch);
             showScorePopup(points, tilesToClear);
+        }
+
+        if (score >= scoreToNextLevel) {
+            level++;
+            scoreToNextLevel = Math.floor(1000 * Math.pow(1.5, level - 1));
+            showLevelUpPopup();
+            if (level === 5) {
+                tileTypes.push('grey');
+            }
         }
 
         if (specialMeter >= specialMeterMax) {
@@ -530,6 +628,8 @@ async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
 function restartGame() {
     score = 0;
     multiplier = 1;
+    level = 1;
+    scoreToNextLevel = 1000;
     updateScoreDisplay();
     gameOverOverlay.classList.add('hidden');
     gameBoard.style.pointerEvents = 'auto';
@@ -641,6 +741,38 @@ function createParticles(x, y, color) {
             particle.remove();
         }, 800);
     }
+}
+
+function createSpecialCombinationParticles(x, y) {
+    const particleCount = 50;
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+        particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        const size = Math.random() * 15 + 5;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.left = `${x}px`;
+        particle.style.top = `${y}px`;
+        const angle = Math.random() * 2 * Math.PI;
+        const distance = Math.random() * 80 + 40;
+        particle.style.setProperty('--x', `${x + Math.cos(angle) * distance}px`);
+        particle.style.setProperty('--y', `${y + Math.sin(angle) * distance}px`);
+        gameBoard.appendChild(particle);
+        setTimeout(() => {
+            particle.remove();
+        }, 1200);
+    }
+
+    const shockwave = document.createElement('div');
+    shockwave.classList.add('shockwave');
+    shockwave.style.left = `${x}px`;
+    shockwave.style.top = `${y}px`;
+    gameBoard.appendChild(shockwave);
+    setTimeout(() => {
+        shockwave.remove();
+    }, 500);
 }
 
 function removeMatches(tilesToRemove) {

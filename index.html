@@ -8,8 +8,12 @@
 </head>
 <body>
     <div id="score-container">
-        <div>Score: <span id="score">0</span></div>
-        <div>Multiplier: <span id="multiplier">1x</span></div>
+        <div>Score: <span id="score" class="score-text">0</span></div>
+        <div>Level: <span id="level" class="level-text">1</span></div>
+        <div>High Score: <span id="high-score" class="high-score-text">0</span></div>
+    </div>
+    <div id="target-score-container">
+        Next Level: <span id="target-score">1000</span>
     </div>
     <div id="special-meter-container">
         <div id="special-meter-bar"></div>
@@ -30,6 +34,7 @@
     <audio id="sound-bomb" src="sounds/bomb.mp3"></audio>
     <audio id="sound-line-bomb" src="sounds/line_bomb.mp3"></audio>
     <audio id="sound-rainbow-bomb" src="sounds/rainbow_bomb.mp3"></audio>
+    <audio id="sound-level-up" src="sounds/level_up.mp3"></audio>
 
     <script src="script.js"></script>
 </body>
