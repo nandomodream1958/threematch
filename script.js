@@ -472,19 +472,57 @@ function createRandomSpecialTile() {
         const tileElement = document.querySelector(`.tile[data-row='${randomPos.r}'][data-col='${randomPos.c}']`);
         if (tileElement) {
             tileElement.className = 'tile';
-            tileElement.style.backgroundColor = '';
             const imageIndex = Math.floor(Math.random() * 2) + 1;
             if (newType.includes('line-bomb-h')) {
-                tileElement.style.backgroundImage = `url(images/line-h-${imageIndex}.png)`;
+                tileElement.style.backgroundImage = `url(./images/line-h-${imageIndex}.png)`;
+                tileElement.style.backgroundColor = color;
             } else if (newType.includes('line-bomb-v')) {
-                tileElement.style.backgroundImage = `url(images/line-v-${imageIndex}.png)`;
+                tileElement.style.backgroundImage = `url(./images/line-v-${imageIndex}.png)`;
+                tileElement.style.backgroundColor = color;
             } else if (newType.includes('bomb')) {
-                tileElement.style.backgroundImage = `url(images/bomb-${imageIndex}.png)`;
+                tileElement.style.backgroundImage = `url(./images/bomb-${imageIndex}.png)`;
+                tileElement.style.backgroundColor = color;
             } else if (newType === 'rainbow-bomb') {
                 tileElement.classList.add('rainbow-bomb');
+                tileElement.style.backgroundColor = '';
+            } else {
+                tileElement.style.backgroundColor = color;
             }
         }
     }
+}
+
+function createSpecialTiles(tilesToCreate) {
+    if (!tilesToCreate || tilesToCreate.length === 0) return;
+
+    tilesToCreate.forEach(st => {
+        if (st.pos) {
+            const { row, col } = st.pos;
+            const newType = st.type === 'rainbow-bomb' ? 'rainbow-bomb' : `${st.color}-${st.type}`;
+            board[row][col] = newType;
+
+            const tileElement = document.querySelector(`.tile[data-row='${row}'][data-col='${col}']`);
+            if(tileElement) {
+                tileElement.className = 'tile';
+                const imageIndex = Math.floor(Math.random() * 2) + 1;
+                if (newType.includes('line-bomb-h')) {
+                    tileElement.style.backgroundImage = `url(./images/line-h-${imageIndex}.png)`;
+                    tileElement.style.backgroundColor = st.color;
+                } else if (newType.includes('line-bomb-v')) {
+                    tileElement.style.backgroundImage = `url(./images/line-v-${imageIndex}.png)`;
+                    tileElement.style.backgroundColor = st.color;
+                } else if (newType.includes('bomb')) {
+                    tileElement.style.backgroundImage = `url(./images/bomb-${imageIndex}.png)`;
+                    tileElement.style.backgroundColor = st.color;
+                } else if (newType === 'rainbow-bomb') {
+                    tileElement.classList.add('rainbow-bomb');
+                    tileElement.style.backgroundColor = '';
+                } else {
+                    tileElement.style.backgroundColor = st.color;
+                }
+            }
+        }
+    });
 }
 
 function showScorePopup(score, positions) {
@@ -695,16 +733,19 @@ function createSpecialTiles(tilesToCreate) {
             const tileElement = document.querySelector(`.tile[data-row='${row}'][data-col='${col}']`);
             if(tileElement) {
                 tileElement.className = 'tile';
-                tileElement.style.backgroundColor = '';
                 const imageIndex = Math.floor(Math.random() * 2) + 1;
                 if (newType.includes('line-bomb-h')) {
-                    tileElement.style.backgroundImage = `url(images/line-h-${imageIndex}.png)`;
+                    tileElement.style.backgroundImage = `url(./images/line-h-${imageIndex}.png)`;
+                    tileElement.style.backgroundColor = st.color;
                 } else if (newType.includes('line-bomb-v')) {
-                    tileElement.style.backgroundImage = `url(images/line-v-${imageIndex}.png)`;
+                    tileElement.style.backgroundImage = `url(./images/line-v-${imageIndex}.png)`;
+                    tileElement.style.backgroundColor = st.color;
                 } else if (newType.includes('bomb')) {
-                    tileElement.style.backgroundImage = `url(images/bomb-${imageIndex}.png)`;
+                    tileElement.style.backgroundImage = `url(./images/bomb-${imageIndex}.png)`;
+                    tileElement.style.backgroundColor = st.color;
                 } else if (newType === 'rainbow-bomb') {
                     tileElement.classList.add('rainbow-bomb');
+                    tileElement.style.backgroundColor = '';
                 } else {
                     tileElement.style.backgroundColor = st.color;
                 }

@@ -47,7 +47,6 @@ body {
 .tile {
     width: 50px;
     height: 50px;
-    background-color: #fff;
     border: 1px solid #ccc;
     box-sizing: border-box;
     position: absolute; /* 親要素に対して絶対配置 */
@@ -168,6 +167,34 @@ body {
 }
 
 /* 特殊タイル用のスタイル */
+.tile.line-bomb-h {
+    background-image: url('./images/line-h-1.png') !important;
+    background-color: transparent;
+    background-size: 70% 70%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.tile.line-bomb-v {
+    background-image: url('./images/line-v-1.png') !important;
+    background-color: transparent;
+    background-size: 70% 70%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.tile.bomb {
+    background-image: url('./images/bomb-1.png') !important;
+    background-color: transparent;
+    background-size: 70% 70%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.tile.rainbow-bomb {
+    background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red) !important;
+    animation: rainbow-spin 2s linear infinite;
+}
 
 @keyframes rainbow-spin {
     from { transform: rotate(0deg); }
