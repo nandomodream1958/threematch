@@ -168,49 +168,6 @@ body {
 }
 
 /* 特殊タイル用のスタイル */
-.tile.line-bomb-h::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 10%;
-    right: 10%;
-    height: 4px;
-    background-color: white;
-    transform: translateY(-50%);
-    border-radius: 2px;
-    box-shadow: 0 0 2px black;
-}
-
-.tile.line-bomb-v::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 10%;
-    bottom: 10%;
-    width: 4px;
-    background-color: white;
-    transform: translateX(-50%);
-    border-radius: 2px;
-    box-shadow: 0 0 2px black;
-}
-
-.tile.rainbow-bomb {
-    background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red) !important;
-    animation: rainbow-spin 2s linear infinite;
-}
-
-.tile.bomb::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 20px;
-    height: 20px;
-    background-color: black;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 0 5px white;
-}
 
 @keyframes rainbow-spin {
     from { transform: rotate(0deg); }
