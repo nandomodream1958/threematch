@@ -179,9 +179,25 @@ function renderBoard() {
         for (let col = 0; col < boardSize; col++) {
             const tile = document.createElement('div');
             tile.classList.add('tile');
-            tile.style.backgroundColor = board[row][col];
+            const tileType = board[row][col];
+            const color = tileType.split('-')[0];
+            tile.style.backgroundColor = color;
             tile.dataset.row = row;
             tile.dataset.col = col;
+
+            if (isSpecial(tileType)) {
+                const img = document.createElement('img');
+                const imageIndex = Math.floor(Math.random() * 2) + 1;
+                if (tileType.includes('line-bomb-h')) {
+                    img.src = `./images/line-h-${imageIndex}.png`;
+                } else if (tileType.includes('line-bomb-v')) {
+                    img.src = `./images/line-v-${imageIndex}.png`;
+                } else if (tileType.includes('bomb')) {
+                    img.src = `./images/bomb-${imageIndex}.png`;
+                }
+                tile.appendChild(img);
+            }
+
             // 位置を絶対指定
             tile.style.top = `${row * 52}px`;
             tile.style.left = `${col * 52}px`;
@@ -200,7 +216,7 @@ gameBoard.addEventListener('click', async (e) => {
         isMusicPlaying = true;
     }
 
-    const clickedTileElement = e.target;
+    const clickedTileElement = e.target.classList.contains('tile') ? e.target : e.target.parentElement;
     if (!clickedTileElement.classList.contains('tile')) return;
 
     const row = parseInt(clickedTileElement.dataset.row);
@@ -471,16 +487,23 @@ function createRandomSpecialTile() {
 
         const tileElement = document.querySelector(`.tile[data-row='${randomPos.r}'][data-col='${randomPos.c}']`);
         if (tileElement) {
+            tileElement.innerHTML = ''; // Clear existing content
             tileElement.className = 'tile';
             const imageIndex = Math.floor(Math.random() * 2) + 1;
             if (newType.includes('line-bomb-h')) {
-                tileElement.style.backgroundImage = `url(./images/line-h-${imageIndex}.png)`;
+                const img = document.createElement('img');
+                img.src = `./images/line-h-${imageIndex}.png`;
+                tileElement.appendChild(img);
                 tileElement.style.backgroundColor = color;
             } else if (newType.includes('line-bomb-v')) {
-                tileElement.style.backgroundImage = `url(./images/line-v-${imageIndex}.png)`;
+                const img = document.createElement('img');
+                img.src = `./images/line-v-${imageIndex}.png`;
+                tileElement.appendChild(img);
                 tileElement.style.backgroundColor = color;
             } else if (newType.includes('bomb')) {
-                tileElement.style.backgroundImage = `url(./images/bomb-${imageIndex}.png)`;
+                const img = document.createElement('img');
+                img.src = `./images/bomb-${imageIndex}.png`;
+                tileElement.appendChild(img);
                 tileElement.style.backgroundColor = color;
             } else if (newType === 'rainbow-bomb') {
                 tileElement.classList.add('rainbow-bomb');
@@ -503,16 +526,23 @@ function createSpecialTiles(tilesToCreate) {
 
             const tileElement = document.querySelector(`.tile[data-row='${row}'][data-col='${col}']`);
             if(tileElement) {
+                tileElement.innerHTML = ''; // Clear existing content
                 tileElement.className = 'tile';
                 const imageIndex = Math.floor(Math.random() * 2) + 1;
                 if (newType.includes('line-bomb-h')) {
-                    tileElement.style.backgroundImage = `url(./images/line-h-${imageIndex}.png)`;
+                    const img = document.createElement('img');
+                    img.src = `./images/line-h-${imageIndex}.png`;
+                    tileElement.appendChild(img);
                     tileElement.style.backgroundColor = st.color;
                 } else if (newType.includes('line-bomb-v')) {
-                    tileElement.style.backgroundImage = `url(./images/line-v-${imageIndex}.png)`;
+                    const img = document.createElement('img');
+                    img.src = `./images/line-v-${imageIndex}.png`;
+                    tileElement.appendChild(img);
                     tileElement.style.backgroundColor = st.color;
                 } else if (newType.includes('bomb')) {
-                    tileElement.style.backgroundImage = `url(./images/bomb-${imageIndex}.png)`;
+                    const img = document.createElement('img');
+                    img.src = `./images/bomb-${imageIndex}.png`;
+                    tileElement.appendChild(img);
                     tileElement.style.backgroundColor = st.color;
                 } else if (newType === 'rainbow-bomb') {
                     tileElement.classList.add('rainbow-bomb');
@@ -732,16 +762,23 @@ function createSpecialTiles(tilesToCreate) {
 
             const tileElement = document.querySelector(`.tile[data-row='${row}'][data-col='${col}']`);
             if(tileElement) {
+                tileElement.innerHTML = ''; // Clear existing content
                 tileElement.className = 'tile';
                 const imageIndex = Math.floor(Math.random() * 2) + 1;
                 if (newType.includes('line-bomb-h')) {
-                    tileElement.style.backgroundImage = `url(./images/line-h-${imageIndex}.png)`;
+                    const img = document.createElement('img');
+                    img.src = `./images/line-h-${imageIndex}.png`;
+                    tileElement.appendChild(img);
                     tileElement.style.backgroundColor = st.color;
                 } else if (newType.includes('line-bomb-v')) {
-                    tileElement.style.backgroundImage = `url(./images/line-v-${imageIndex}.png)`;
+                    const img = document.createElement('img');
+                    img.src = `./images/line-v-${imageIndex}.png`;
+                    tileElement.appendChild(img);
                     tileElement.style.backgroundColor = st.color;
                 } else if (newType.includes('bomb')) {
-                    tileElement.style.backgroundImage = `url(./images/bomb-${imageIndex}.png)`;
+                    const img = document.createElement('img');
+                    img.src = `./images/bomb-${imageIndex}.png`;
+                    tileElement.appendChild(img);
                     tileElement.style.backgroundColor = st.color;
                 } else if (newType === 'rainbow-bomb') {
                     tileElement.classList.add('rainbow-bomb');

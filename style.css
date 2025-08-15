@@ -191,6 +191,13 @@ body {
     background-position: center;
 }
 
+/* 特殊タイル用のスタイル */
+.tile img {
+    width: 80%;
+    height: 80%;
+    pointer-events: none; /* Make sure clicks go through to the tile div */
+}
+
 .tile.rainbow-bomb {
     background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red) !important;
     animation: rainbow-spin 2s linear infinite;
