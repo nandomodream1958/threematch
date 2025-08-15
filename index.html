@@ -7,18 +7,24 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="score-container">
-        <div>Score: <span id="score" class="score-text">0</span></div>
-        <div>Level: <span id="level" class="level-text">1</span></div>
-        <div>High Score: <span id="high-score" class="high-score-text">0</span></div>
+    <div class="container">
+        <div class="title-container">
+            <h1>スリーマッチゲーム</h1>
+            <div class="speech-bubble">はるしお版</div>
+        </div>
+        <div id="score-container">
+            <div>Score: <span id="score" class="score-text">0</span></div>
+            <div>Level: <span id="level" class="level-text">1</span></div>
+            <div>High Score: <span id="high-score" class="high-score-text">0</span></div>
+        </div>
+        <div id="target-score-container">
+            目標: <span id="objective-text"></span>
+        </div>
+        <div id="special-meter-container">
+            <div id="special-meter-bar"></div>
+        </div>
+        <div id="game-board"></div>
     </div>
-    <div id="target-score-container">
-        Next Level: <span id="target-score">1000</span>
-    </div>
-    <div id="special-meter-container">
-        <div id="special-meter-bar"></div>
-    </div>
-    <div id="game-board"></div>
 
     <div id="game-over-overlay" class="hidden">
         <div id="game-over-box">

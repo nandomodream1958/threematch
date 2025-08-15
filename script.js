@@ -2,7 +2,7 @@ const gameBoard = document.getElementById('game-board');
 const scoreElement = document.getElementById('score');
 const levelElement = document.getElementById('level');
 const highScoreElement = document.getElementById('high-score');
-const targetScoreElement = document.getElementById('target-score');
+const objectiveTextElement = document.getElementById('objective-text');
 const gameOverOverlay = document.getElementById('game-over-overlay');
 const finalScoreElement = document.getElementById('final-score');
 const playAgainBtn = document.getElementById('play-again-btn');
@@ -24,12 +24,42 @@ let board = [];
 let score = 0;
 let multiplier = 1;
 let level = 1;
-let scoreToNextLevel = 1000;
 let highScore = 0;
 let selectedTile = null;
 let specialMeter = 0;
 const specialMeterMax = 100;
 let isMusicPlaying = false;
+
+const levels = [
+    { level: 1, objective: { type: 'score', value: 1000 } },
+    { level: 2, objective: { type: 'clearColor', color: 'red', count: 30 } },
+    { level: 3, objective: { type: 'clearColor', color: 'blue', count: 40 } },
+    { level: 4, objective: { type: 'score', value: 5000 } },
+    { level: 5, objective: { type: 'clearColor', color: 'green', count: 50 } },
+];
+
+let currentObjective = {};
+let objectiveProgress = 0;
+
+function initializeLevel(level) {
+    const levelData = levels.find(l => l.level === level);
+    if (levelData) {
+        currentObjective = levelData.objective;
+    } else {
+        // Default objective if level not found
+        currentObjective = { type: 'score', value: Math.floor(1000 * Math.pow(1.5, level - 1)) };
+    }
+    objectiveProgress = 0;
+    updateObjectiveDisplay();
+}
+
+function updateObjectiveDisplay() {
+    if (currentObjective.type === 'score') {
+        objectiveTextElement.textContent = `スコア ${Math.round(currentObjective.value)} を目指す`;
+    } else if (currentObjective.type === 'clearColor') {
+        objectiveTextElement.textContent = `${currentObjective.color}タイルを${currentObjective.count}個消す (${objectiveProgress}/${currentObjective.count})`;
+    }
+}
 
 function playSound(sound) {
     sound.currentTime = 0;
@@ -45,7 +75,7 @@ function updateScoreDisplay() {
     scoreElement.textContent = score;
     levelElement.textContent = level;
     highScoreElement.textContent = highScore;
-    targetScoreElement.textContent = scoreToNextLevel;
+    updateObjectiveDisplay();
 }
 
 function showLevelUpPopup() {
@@ -87,10 +117,11 @@ function checkForPossibleMoves() {
     const tempBoard = board.map(row => [...row]);
 
     function checkMatchesOnTempBoard(tempB) {
+        const colorBoard = tempB.map(row => row.map(tile => tile ? tile.split('-')[0] : null));
         // Horizontal
         for (let r = 0; r < boardSize; r++) {
             for (let c = 0; c < boardSize - 2; c++) {
-                if (tempB[r][c] && tempB[r][c] === tempB[r][c + 1] && tempB[r][c] === tempB[r][c + 2]) {
+                if (colorBoard[r][c] && colorBoard[r][c] === colorBoard[r][c + 1] && colorBoard[r][c] === colorBoard[r][c + 2]) {
                     return true;
                 }
             }
@@ -98,7 +129,7 @@ function checkForPossibleMoves() {
         // Vertical
         for (let c = 0; c < boardSize; c++) {
             for (let r = 0; r < boardSize - 2; r++) {
-                if (tempB[r][c] && tempB[r + 1][c] && tempB[r][c] === tempB[r + 1][c] && tempB[r][c] === tempB[r + 2][c]) {
+                if (colorBoard[r][c] && colorBoard[r + 1][c] && colorBoard[r][c] === colorBoard[r + 1][c] && colorBoard[r][c] === colorBoard[r + 2][c]) {
                     return true;
                 }
             }
@@ -199,14 +230,15 @@ function renderBoard() {
             }
 
             // 位置を絶対指定
-            tile.style.top = `${row * 52}px`;
-            tile.style.left = `${col * 52}px`;
+            tile.style.top = `${row * 12.5}%`;
+            tile.style.left = `${col * 12.5}%`;
             gameBoard.appendChild(tile);
         }
     }
 }
 
 initializeBoard();
+initializeLevel(level);
 shuffleBoard();
 updateScoreDisplay();
 
@@ -634,12 +666,22 @@ async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
             showScorePopup(points, tilesToClear);
         }
 
-        if (score >= scoreToNextLevel) {
-            level++;
-            scoreToNextLevel = Math.floor(1000 * Math.pow(1.5, level - 1));
-            showLevelUpPopup();
-            if (level === 5) {
-                tileTypes.push('grey');
+        if (currentObjective.type === 'score') {
+            if (score >= currentObjective.value) {
+                levelUp();
+            }
+        } else if (currentObjective.type === 'clearColor') {
+            let clearedColorCount = 0;
+            tilesToClear.forEach(pos => {
+                const [row, col] = pos.split('-').map(Number);
+                const tileType = getTileType(row, col);
+                if (tileType && tileType.startsWith(currentObjective.color)) {
+                    clearedColorCount++;
+                }
+            });
+            objectiveProgress += clearedColorCount;
+            if (objectiveProgress >= currentObjective.count) {
+                levelUp();
             }
         }
 
@@ -696,11 +738,17 @@ async function runMatchCycle(initialTilesToClear, specialTilesToCreate = []) {
     }
 }
 
+function levelUp() {
+    level++;
+    initializeLevel(level);
+    showLevelUpPopup();
+}
+
 function restartGame() {
     score = 0;
     multiplier = 1;
     level = 1;
-    scoreToNextLevel = 1000;
+    initializeLevel(level);
     updateScoreDisplay();
     gameOverOverlay.classList.add('hidden');
     gameBoard.style.pointerEvents = 'auto';
@@ -805,6 +853,9 @@ function showComboPopup(multiplier) {
 
 function createParticles(x, y, color) {
     const particleCount = 20;
+    const gameBoardWidth = gameBoard.offsetWidth;
+    const gameBoardHeight = gameBoard.offsetHeight;
+
     for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
         particle.classList.add('particle');
@@ -812,12 +863,12 @@ function createParticles(x, y, color) {
         const size = Math.random() * 10 + 5;
         particle.style.width = `${size}px`;
         particle.style.height = `${size}px`;
-        particle.style.left = `${x}px`;
-        particle.style.top = `${y}px`;
+        particle.style.left = `${(x / gameBoardWidth) * 100}%`;
+        particle.style.top = `${(y / gameBoardHeight) * 100}%`;
         const angle = Math.random() * 2 * Math.PI;
         const distance = Math.random() * 40 + 20;
-        particle.style.setProperty('--x', `${x + Math.cos(angle) * distance}px`);
-        particle.style.setProperty('--y', `${y + Math.sin(angle) * distance}px`);
+        particle.style.setProperty('--x', `${((x + Math.cos(angle) * distance) / gameBoardWidth) * 100}%`);
+        particle.style.setProperty('--y', `${((y + Math.sin(angle) * distance) / gameBoardHeight) * 100}%`);
         gameBoard.appendChild(particle);
         setTimeout(() => {
             particle.remove();
@@ -907,12 +958,12 @@ async function fillNewTiles() {
                 tile.style.backgroundColor = newTileType;
                 tile.dataset.row = row;
                 tile.dataset.col = col;
-                tile.style.left = `${col * 52}px`;
-                tile.style.top = `${-52}px`;
+                tile.style.left = `${col * 12.5}%`;
+                tile.style.top = '-12.5%';
                 gameBoard.appendChild(tile);
                 
                 const promise = new Promise(res => setTimeout(() => {
-                    tile.style.top = `${row * 52}px`;
+                    tile.style.top = `${row * 12.5}%`;
                     res();
                 }, 200));
                 promises.push(promise);

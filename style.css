@@ -5,56 +5,113 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
     margin: 0;
-    background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+    background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
     flex-direction: column; /* 縦に並べる */
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.title-container {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: clamp(32px, 10vw, 48px);
+    color: white;
+    text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+    margin: 0;
+}
+
+.speech-bubble {
+    position: absolute;
+    top: -20px;
+    right: -80px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 5px 10px;
+    font-size: clamp(12px, 3vw, 16px);
+    font-weight: bold;
+    color: red;
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 20px;
+    border-width: 10px 10px 0 0;
+    border-style: solid;
+    border-color: #fff transparent transparent transparent;
 }
 
 #score-container {
     display: flex;
     justify-content: space-between;
-    width: 416px;
-    font-size: 24px;
+    width: 90vw;
+    max-width: 416px;
+    font-size: clamp(16px, 4vw, 24px);
     font-weight: bold;
     margin-bottom: 5px;
     padding: 10px;
-    background-color: #e0e0e0;
-    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
     box-sizing: border-box;
 }
 
 #target-score-container {
-    width: 416px;
-    font-size: 22px;
+    width: 90vw;
+    max-width: 416px;
+    font-size: clamp(14px, 3.5vw, 22px);
     font-weight: bold;
     margin-bottom: 10px;
     padding: 5px 10px;
-    background-color: #e0e0e0;
-    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
     box-sizing: border-box;
     text-align: center;
 }
 
 #game-board {
     position: relative;
-    width: 416px; /* 8 tiles * 52px */
-    height: 416px; /* 8 tiles * 52px */
-    background-color: #ccc;
-    border: 2px solid #333;
+    width: 90vw;
+    height: 90vw;
+    max-width: 416px;
+    max-height: 416px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border: 2px solid #fff;
+    border-radius: 10px;
+    aspect-ratio: 1 / 1;
 }
 
 .tile {
-    width: 50px;
-    height: 50px;
-    border: 1px solid #ccc;
+    width: 12.5%;
+    height: 12.5%;
+    background-color: #fff;
     box-sizing: border-box;
     position: absolute; /* 親要素に対して絶対配置 */
     transition: transform 0.2s ease-in-out, top 0.3s ease-in-out, left 0.3s ease-in-out;
+    border-radius: 5px;
+}
+
+.tile img {
+    width: 90%;
+    height: 90%;
+    pointer-events: none; /* Make sure clicks go through to the tile div */
 }
 
 .tile.selected {
-    border: 3px solid #3498db;
+    border: 3px solid #fff;
     transform: scale(1.1);
 }
 
@@ -79,9 +136,9 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 48px;
+    font-size: clamp(32px, 8vw, 48px);
     font-weight: bold;
-    color: #00FF00; /* Vibrant Green */
+    color: #fff;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
     animation: combo-animation 1s forwards;
     pointer-events: none;
@@ -93,7 +150,7 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 64px;
+    font-size: clamp(48px, 12vw, 64px);
     font-weight: bold;
     color: #ffde59; /* Gold */
     text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
@@ -156,56 +213,10 @@ body {
     75% { transform: translateX(5px); }
 }
 
-/* 倍率表示のアニメーション */
-#multiplier.scaling {
-    animation: scale-up 0.3s;
-}
-
-@keyframes scale-up {
-    0%, 100% { transform: scale(1); color: initial; }
-    50% { transform: scale(1.5); color: #e74c3c; }
-}
-
 /* 特殊タイル用のスタイル */
-.tile.line-bomb-h {
-    background-image: url('./images/line-h-1.png') !important;
-    background-color: transparent;
-    background-size: 70% 70%;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
-.tile.line-bomb-v {
-    background-image: url('./images/line-v-1.png') !important;
-    background-color: transparent;
-    background-size: 70% 70%;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
-.tile.bomb {
-    background-image: url('./images/bomb-1.png') !important;
-    background-color: transparent;
-    background-size: 70% 70%;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
-/* 特殊タイル用のスタイル */
-.tile img {
-    width: 80%;
-    height: 80%;
-    pointer-events: none; /* Make sure clicks go through to the tile div */
-}
-
 .tile.rainbow-bomb {
     background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red) !important;
     animation: rainbow-spin 2s linear infinite;
-}
-
-@keyframes rainbow-spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
 }
 
 /* ゲームオーバー画面のスタイル */
@@ -250,18 +261,19 @@ body {
 }
 
 #special-meter-container {
-    width: 416px;
+    width: 90vw;
+    max-width: 416px;
     height: 20px;
-    background-color: #e0e0e0;
-    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
     margin-bottom: 10px;
-    border: 2px solid #333;
+    border: 2px solid #fff;
 }
 
 #special-meter-bar {
     width: 0%;
     height: 100%;
-    background-color: #3498db;
+    background-color: #ff9a9e;
     border-radius: 5px;
     transition: width 0.3s ease-in-out;
 }
@@ -338,13 +350,29 @@ body {
 }
 
 .score-text {
-    color: #3498db;
+    color: #2980b9;
 }
 
 .level-text {
-    color: #e74c3c;
+    color: #c0392b;
 }
 
 .high-score-text {
     color: #27ae60;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+    .container {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    #game-board {
+        width: 80vh;
+        height: 80vh;
+    }
+
+    .title-container {
+        margin-bottom: 10px;
+    }
 }
